@@ -1,35 +1,48 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+import { Routes, Route } from 'react-router-dom';
+
+import AdminDashboard from './pages/Admin/AdminDashboard';
+import ReviewStylist from './pages/Reviews/ReviewStylist';
+import ReviewSalon from './pages/Reviews/ReviewSalon';
+import Register from './pages/Auth/Register';
+import Login from './pages/Auth/Login'; // Optional: include if you have a login page
+import Home from './pages/Home'; // Optional: include if you have a home page
+import ProtectedRoute from './components/ProtectedRoute';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <Routes>
+      <Route path="/" element={<Home />} />
+      <Route path="/register" element={<Register />} />
+      <Route path="/login" element={<Login />} />
+      
+      <Route
+        path="/review/stylist/:stylistId"
+        element={
+          <ProtectedRoute>
+            <ReviewStylist />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/review/salon/:salonId"
+        element={
+          <ProtectedRoute>
+            <ReviewSalon />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute adminOnly={true}>
+            <AdminDashboard />
+          </ProtectedRoute>
+        }
+      />
+      <Route path="*" element={<p className="p-6">Page not found</p>} />
+    </Routes>
+  );
 }
 
-export default App
+export default App;
