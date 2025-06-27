@@ -258,21 +258,22 @@ const handleProfileUpdate = async (e) => {
     }
   };
 
-  const cancelAppointment = async (appointmentId) => {
-    try {
-      await axios.delete(`/appointments/${appointmentId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+const cancelAppointment = async (appointmentId) => {
+  try {
+    await axios.delete(`http://127.0.0.1:5000/api/customer/customers/${user.id}/appointments/${appointmentId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
 
-      toast.success('Appointment cancelled');
-      loadAppointments(); // Refresh the list
-    } catch (err) {
-      toast.error(err.response?.data?.error || 'Failed to cancel appointment');
-      console.error(err);
-    }
-  };
+    toast.success('Appointment cancelled');
+    loadAppointments(); // Refresh the list
+  } catch (err) {
+    toast.error(err.response?.data?.error || 'Failed to cancel appointment');
+    console.error(err);
+  }
+};
+
 
   const filteredServices = selectedCategory === 'all' 
     ? services 

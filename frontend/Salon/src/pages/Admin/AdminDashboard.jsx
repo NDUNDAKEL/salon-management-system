@@ -8,6 +8,7 @@ import { FaUserCog, FaUserSlash, FaUserCheck, FaSpinner } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 import StylistList from './Stylists';
 import ServiceList from './ShowServices';
+import AdminAppointments from './Appointments';
 
 export default function AdminDashboard() {
   const { user, logout } = useContext(AuthContext);
@@ -123,7 +124,7 @@ console.log(users)
       <div className="bg-white rounded-xl shadow-lg p-6">
         {/* Tab Navigation */}
         <div className="flex space-x-2 mb-6 border-b border-gray-200 pb-4">
-          {['users', 'stylist', 'service'].map(tab => (
+          {['users', 'stylist', 'Appointments','service'].map(tab => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
@@ -211,6 +212,9 @@ console.log(users)
         {activeTab === 'service' && (<>
         <ServiceForm />
          <ServiceList/>
+        </>)}
+        {activeTab === 'Appointments' && (<>
+        <AdminAppointments/>
         </>)}
       </div>
     </div>

@@ -89,6 +89,25 @@ def admin_update_customer(customer_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+@customer_bp.route("/admin/appointments", methods=["GET"])
+@jwt_required()
+def get_all_appointments_admin():
+    current_user = User.query.get(get_jwt_identity())
+    if not current_user or not current_user.is_admin:
+        return jsonify({"error": "Admin access required"}), 403
+
+    appointments = Appointment.query.all()
+    return jsonify([{
+        "id": app.id,
+        "stylist": getattr(app.stylist, 'name', None),
+        "service": getattr(app.service, 'name', None),
+        "status": app.status,
+        "salon": getattr(getattr(app.stylist, 'salon', None), 'name', None),
+        "appointment_date": app.appointment_date.isoformat() if app.appointment_date else None,
+        "appointment_time": app.appointment_time.strftime('%H:%M:%S') if app.appointment_time else None,
+        "start_datetime": app.start_datetime.isoformat() if app.start_datetime else None,
+        "end_datetime": app.end_datetime.isoformat() if app.end_datetime else None
+    } for app in appointments]), 200
 
 @customer_bp.route("/admin/customers/<int:customer_id>/appointments", methods=["GET"])
 @jwt_required()
@@ -346,6 +365,27 @@ def get_customer_appointments(customer_id):
         result.append(appointment_data)
 
     return jsonify(result), 200
+
+
+#delete appointment
+@customer_bp.route("/customers/<int:customer_id>/appointments/<int:appointment_id>", methods=["DELETE"])
+@jwt_required()
+def delete_customer_appointment(customer_id, appointment_id):
+    current_user_id = int(get_jwt_identity())
+    if current_user_id != customer_id:
+        return jsonify({"error": "Unauthorized access"}), 403
+
+    appointment = Appointment.query.filter_by(id=appointment_id, customer_id=customer_id).first()
+    if not appointment:
+        return jsonify({"error": "Appointment not found"}), 404
+
+    try:
+        db.session.delete(appointment)
+        db.session.commit()
+        return jsonify({"message": "Appointment deleted successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 # Get customer reviews
 @customer_bp.route("/customers/<int:customer_id>/reviews", methods=["GET"])
