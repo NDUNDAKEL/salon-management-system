@@ -3,6 +3,8 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime, timezone
 from flask_jwt_extended import create_access_token
 from sqlalchemy import func
+from datetime import time
+
 
 import time 
 from datetime import datetime, timezone, timedelta
@@ -109,7 +111,6 @@ class Salon(db.Model):
             "average_rating": self.average_rating(),
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
-
 class Stylist(db.Model):
     __tablename__ = 'stylists'
     
@@ -118,12 +119,14 @@ class Stylist(db.Model):
     slug = db.Column(db.String(100), unique=True, nullable=False)
     specialization = db.Column(db.String(100))
     bio = db.Column(db.Text)
+    phone = db.Column(db.String(20))  # New
+    email = db.Column(db.String(120))  # New
     profile_pic = db.Column(db.String(255))
     salon_id = db.Column(db.Integer, db.ForeignKey('salons.id'), nullable=False)
     is_active = db.Column(db.Boolean, default=True)
-    years_experience = db.Column(db.Integer, default=0)  # Added default
+    years_experience = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    
+
     # Relationships
     appointments = db.relationship('Appointment', backref='stylist', lazy='dynamic', cascade="all, delete-orphan")
     reviews = db.relationship('Review', backref='stylist', lazy='dynamic', cascade="all, delete-orphan")
@@ -131,12 +134,10 @@ class Stylist(db.Model):
     
     def __init__(self, **kwargs):
         super(Stylist, self).__init__(**kwargs)
-        # Auto-generate slug if not provided
         if not self.slug and self.name:
             self.slug = self._generate_slug()
     
     def _generate_slug(self):
-        # Simple slug generation - you might want something more robust
         return self.name.lower().replace(' ', '-') + '-' + str(int(time.time()))
     
     def average_rating(self):
@@ -153,6 +154,8 @@ class Stylist(db.Model):
             "slug": self.slug,
             "specialization": self.specialization,
             "bio": self.bio,
+            "phone": self.phone,  # New
+            "email": self.email,  # New
             "profile_pic": self.profile_pic,
             "salon_id": self.salon_id,
             "salon_name": self.salon.name if self.salon else None,
@@ -208,35 +211,40 @@ class Appointment(db.Model):
     customer_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     stylist_id = db.Column(db.Integer, db.ForeignKey('stylists.id'), nullable=False)
     service_id = db.Column(db.Integer, db.ForeignKey('services.id'), nullable=False)
-    appointment_date = db.Column(db.DateTime, nullable=False)
-    end_time = db.Column(db.DateTime)
-    status = db.Column(db.String(20), default='pending')  # pending, confirmed, completed, cancelled, no-show
+    appointment_date = db.Column(db.Date, nullable=True)  # Date only
+    appointment_time = db.Column(db.Time, nullable=True)  # Time only
+    start_datetime = db.Column(db.DateTime, nullable=True)  # Combined datetime
+    end_datetime = db.Column(db.DateTime)  # Calculated end time
+    status = db.Column(db.String(20), default='pending')
     notes = db.Column(db.Text)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     __table_args__ = (
-        db.Index('idx_appointment_datetime', 'stylist_id', 'appointment_date', unique=True),
+        db.Index('idx_appointment_datetime', 'stylist_id', 'start_datetime', unique=True),
     )
     
-    def calculate_end_time(self):
-        if self.service and self.appointment_date:
-            return self.appointment_date + timedelta(minutes=self.service.duration)
-        return None
+    def __init__(self, **kwargs):
+        super(Appointment, self).__init__(**kwargs)
+        # Combine date and time into start_datetime
+        if self.appointment_date and self.appointment_time:
+            self.start_datetime = datetime.combine(self.appointment_date, self.appointment_time)
+        # Calculate end time if service duration is available
+        if hasattr(self, 'service') and self.service and self.start_datetime:
+            self.end_datetime = self.start_datetime + timedelta(minutes=self.service.duration)
     
     def to_dict(self):
         return {
             "id": self.id,
             "customer_id": self.customer_id,
-            "customer_name": self.customer.username if self.customer else None,
             "stylist_id": self.stylist_id,
-            "stylist_name": self.stylist.name if self.stylist else None,
             "service_id": self.service_id,
-            "service_name": self.service.name if self.service else None,
-            "appointment_date": self.appointment_date.isoformat() if self.appointment_date else None,
-            "end_time": self.end_time.isoformat() if self.end_time else None,
+            "appointment_date": self.appointment_date.isoformat(),
+            "appointment_time": self.appointment_time.isoformat(timespec='minutes'),
+            "start_datetime": self.start_datetime.isoformat(),
+            "end_datetime": self.end_datetime.isoformat() if self.end_datetime else None,
             "status": self.status,
             "notes": self.notes,
-            "created_at": self.created_at.isoformat() if self.created_at else None
+            "created_at": self.created_at.isoformat()
         }
 
 class Review(db.Model):

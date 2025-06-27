@@ -1,26 +1,28 @@
 import { useState } from 'react';
 import axios from '../../api/axios';
 import { useNavigate, Link } from 'react-router-dom';
-import { FaUser, FaEnvelope, FaLock } from 'react-icons/fa';
-import { FaScissors } from 'react-icons/fa6';
+import { FaScissors, FaUser, FaEnvelope, FaLock, FaPhone, FaEye, FaEyeSlash } from 'react-icons/fa6';
 import { FiLoader } from 'react-icons/fi';
 
 export default function Register() {
   const [formData, setFormData] = useState({
     username: '',
     email: '',
+    phone: '',
     password: '',
-    isStylist: false
+    confirmPassword: ''
   });
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const navigate = useNavigate();
 
   const handleChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     }));
   };
 
@@ -29,9 +31,21 @@ export default function Register() {
     setIsLoading(true);
     setError('');
 
+    // Validate password match
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      await axios.post('/auth/register', formData);
-      navigate('/login', { state: { successMessage: 'Registration successful! Please log in.' } });
+      const { confirmPassword, ...userData } = formData;
+      await axios.post('/auth/register', userData);
+      navigate('/login', { 
+        state: { 
+          successMessage: 'Registration successful! Please log in.' 
+        } 
+      });
     } catch (err) {
       setError(err.response?.data?.error || 'Registration failed. Please try again.');
     } finally {
@@ -73,6 +87,7 @@ export default function Register() {
                   value={formData.username}
                   onChange={handleChange}
                   required
+                  minLength="3"
                 />
               </div>
 
@@ -93,32 +108,70 @@ export default function Register() {
 
               <div className="relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaPhone className="text-gray-400" />
+                </div>
+                <input
+                  name="phone"
+                  type="tel"
+                  placeholder="Phone Number"
+                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  value={formData.phone}
+                  onChange={handleChange}
+                />
+              </div>
+
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <FaLock className="text-gray-400" />
                 </div>
                 <input
                   name="password"
-                  type="password"
+                  type={showPassword ? "text" : "password"}
                   placeholder="Password"
-                  className="w-full pl-10 pr-4 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  className="w-full pl-10 pr-10 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                   value={formData.password}
                   onChange={handleChange}
                   required
                   minLength="6"
                 />
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? (
+                    <FaEyeSlash className="text-gray-400 hover:text-gray-600" />
+                  ) : (
+                    <FaEye className="text-gray-400 hover:text-gray-600" />
+                  )}
+                </button>
               </div>
 
-              <div className="flex items-center">
+              <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaLock className="text-gray-400" />
+                </div>
                 <input
-                  name="isStylist"
-                  type="checkbox"
-                  id="stylist-checkbox"
-                  className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
-                  checked={formData.isStylist}
+                  name="confirmPassword"
+                  type={showConfirmPassword ? "text" : "password"}
+                  placeholder="Confirm Password"
+                  className="w-full pl-10 pr-10 py-3 rounded-lg border border-gray-300 focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  value={formData.confirmPassword}
                   onChange={handleChange}
+                  required
+                  minLength="6"
                 />
-                <label htmlFor="stylist-checkbox" className="ml-2 block text-sm text-gray-700">
-                  I am a stylist
-                </label>
+                <button
+                  type="button"
+                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                  onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                >
+                  {showConfirmPassword ? (
+                    <FaEyeSlash className="text-gray-400 hover:text-gray-600" />
+                  ) : (
+                    <FaEye className="text-gray-400 hover:text-gray-600" />
+                  )}
+                </button>
               </div>
 
               <button

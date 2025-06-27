@@ -77,17 +77,124 @@ def get_stylist(stylist_id):
     }), 200
 
 # Service endpoints
+
+#add a service
+# routes/service_routes.py or similar
+def is_admin():
+    current_user = User.query.get(get_jwt_identity())
+    return current_user and current_user.is_admin
+@salon_bp.route('/services', methods=['POST'])
+@jwt_required()
+def create_service():
+    if not is_admin():
+        return jsonify({"error": "Admin access required"}), 403
+
+    data = request.get_json()
+
+    name = data.get('name')
+    description = data.get('description')
+    duration = data.get('duration')
+    price = data.get('price')
+    category = data.get('category')
+    salon_id = data.get('salon_id')
+
+    if not all([name, salon_id]):
+        return jsonify({"error": "Name and salon_id are required"}), 400
+
+    slug = name.lower().replace(" ", "-")
+
+    try:
+        new_service = Service(
+            name=name,
+            slug=slug,
+            description=description,
+            duration=duration,
+            price=price,
+            category=category,
+            salon_id=salon_id,
+            is_active=True
+        )
+        db.session.add(new_service)
+        db.session.commit()
+
+        return jsonify({
+            "message": "Service added successfully",
+            "service": new_service.to_dict()
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
 @salon_bp.route('/services', methods=['GET'])
 def get_services():
     services = Service.query.all()
-    return jsonify([{
-        'id': service.id,
-        'name': service.name,
-        'description': service.description,
-        'duration': service.duration,
-        'price': service.price,
-        'salon_id': service.salon_id
-    } for service in services]), 200
+    result = []
+
+    for service in services:
+        stylists = []
+        for stylist in service.stylists:
+            stylists.append({
+                "id": stylist.id,
+                "name": stylist.name,
+                "specialisation": stylist.specialization,
+            
+            })
+
+        result.append({
+            "id": service.id,
+            "name": service.name,
+            "description": service.description,
+            "duration": service.duration,
+            "price": service.price,
+            "category": service.category,
+            "salon_id": service.salon_id,
+            "stylists": stylists
+        })
+
+    return jsonify(result), 200
+
+@salon_bp.route('/services/<int:service_id>', methods=['PUT'])
+@jwt_required()
+def update_service(service_id):
+    if not is_admin():
+        return jsonify({"error": "Admin access required"}), 403
+
+    service = Service.query.get_or_404(service_id)
+    data = request.get_json()
+
+    service.name = data.get('name', service.name)
+    service.description = data.get('description', service.description)
+    service.duration = data.get('duration', service.duration)
+    service.price = data.get('price', service.price)
+    service.category = data.get('category', service.category)
+    service.is_active = data.get('is_active', service.is_active)
+
+    try:
+        db.session.commit()
+        return jsonify({
+            "message": "Service updated successfully",
+            "service": service.to_dict()
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Update failed", "details": str(e)}), 500
+@salon_bp.route('/services/<int:service_id>', methods=['DELETE'])
+@jwt_required()
+def delete_service(service_id):
+    if not is_admin():
+        return jsonify({"error": "Admin access required"}), 403
+
+    service = Service.query.get_or_404(service_id)
+
+    try:
+        db.session.delete(service)
+        db.session.commit()
+        return jsonify({"message": "Service deleted successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": "Delete failed", "details": str(e)}), 500
 
 # Appointment endpoints
 @salon_bp.route('/appointments', methods=['POST'])
@@ -165,7 +272,7 @@ def get_user_appointments():
 @jwt_required()
 def create_stylist_review():
     data = request.get_json()
-    customer_id = get_jwt_identity()
+    customer_id = int(get_jwt_identity())
     stylist_id = data.get('stylist_id')
     rating = data.get('rating')
     comment = data.get('comment', '')
@@ -217,7 +324,7 @@ def create_stylist_review():
 @jwt_required()
 def create_salon_review():
     data = request.get_json()
-    customer_id = get_jwt_identity()
+    customer_id = int(get_jwt_identity())
     salon_id = data.get('salon_id')
     rating = data.get('rating')
     comment = data.get('comment', '')

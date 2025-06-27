@@ -1,48 +1,129 @@
-import { useState, useEffect } from 'react';
-import axios from '../../api/axios';
+import { useState } from 'react';
+import axios from 'axios';
+import { toast } from 'react-toastify';
+import ServiceList from './ShowServices';
+
+const API_URL = 'http://127.0.0.1:5000/api';
 
 export default function ServiceForm() {
-  const [name, setName] = useState('');
-  const [salonId, setSalonId] = useState('');
-  const [description, setDescription] = useState('');
-  const [price, setPrice] = useState('');
-  const [duration, setDuration] = useState('');
-  const [salons, setSalons] = useState([]);
-  const [message, setMessage] = useState('');
+  const [formData, setFormData] = useState({
+    name: '',
+    slug: '',
+    category: '',
+    description: '',
+    duration: '',
+    price: '',
+    salon_id: 1,         // Default to salon with ID 1
+    is_active: true
+  });
+  const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    axios.get('/admin/salons', { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
-      .then(res => setSalons(res.data));
-  }, []);
+  const handleChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+  };
 
-  const submit = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      await axios.post('/admin/services', { name, salon_id: salonId, description, price, duration }, {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+      await axios.post(`${API_URL}/salon/services`, formData, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
       });
-      setMessage('Service created!');
-      setName(''); setDescription(''); setPrice(''); setDuration(''); setSalonId('');
+      toast.success('Service added successfully');
+      setFormData({
+        name: '',
+        slug: '',
+        category: '',
+        description: '',
+        duration: '',
+        price: '',
+        salon_id: 1,
+        is_active: true
+      });
     } catch (err) {
-      setMessage(err.response?.data?.error || 'Creation failed');
+      toast.error(err.response?.data?.error || 'Creation failed');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="p-6 max-w-md mx-auto">
-      <h2 className="text-xl font-bold mb-4">Create Service</h2>
-      {message && <p className="mb-2">{message}</p>}
-      <form onSubmit={submit} className="space-y-4">
-        <input value={name} onChange={e => setName(e.target.value)} placeholder="Name" className="w-full border p-2" />
-        <select value={salonId} onChange={e => setSalonId(e.target.value)} className="w-full border p-2">
-          <option value="">Select Salon</option>
-          {salons.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
-        </select>
-        <textarea value={description} onChange={e => setDescription(e.target.value)} placeholder="Description" className="w-full border p-2" />
-        <input value={price} onChange={e => setPrice(e.target.value)} placeholder="Price" type="number" className="w-full border p-2" />
-        <input value={duration} onChange={e => setDuration(e.target.value)} placeholder="Duration (min)" type="number" className="w-full border p-2" />
-        <button type="submit" className="bg-blue-600 text-white px-4 py-2">Create Service</button>
+    <div className="p-6 max-w-xl mx-auto bg-white rounded-xl shadow-lg">
+      <h2 className="text-2xl font-bold mb-4 text-purple-700">Add New Service</h2>
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <input
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          placeholder="Service Name"
+          required
+          className="w-full border px-4 py-2 rounded"
+        />
+        <input
+          name="slug"
+          value={formData.slug}
+          onChange={handleChange}
+          placeholder="Unique Slug"
+          required
+          className="w-full border px-4 py-2 rounded"
+        />
+        <input
+          name="category"
+          value={formData.category}
+          onChange={handleChange}
+          placeholder="Category (e.g., Hair, Nails)"
+          className="w-full border px-4 py-2 rounded"
+        />
+        <textarea
+          name="description"
+          value={formData.description}
+          onChange={handleChange}
+          placeholder="Description"
+          className="w-full border px-4 py-2 rounded"
+        />
+        <input
+          name="price"
+          type="number"
+          value={formData.price}
+          onChange={handleChange}
+          placeholder="Price (KSh)"
+          className="w-full border px-4 py-2 rounded"
+        />
+        <input
+          name="duration"
+          type="number"
+          value={formData.duration}
+          onChange={handleChange}
+          placeholder="Duration (minutes)"
+          className="w-full border px-4 py-2 rounded"
+        />
+
+        <label className="flex items-center space-x-2">
+          <input
+            type="checkbox"
+            name="is_active"
+            checked={formData.is_active}
+            onChange={handleChange}
+          />
+          <span>Active</span>
+        </label>
+
+        <button
+          type="submit"
+          disabled={loading}
+          className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded w-full"
+        >
+          {loading ? 'Creating...' : 'Create Service'}
+        </button>
       </form>
+     
     </div>
   );
 }

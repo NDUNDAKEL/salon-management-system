@@ -1,36 +1,28 @@
 import { useState } from 'react';
 import axios from '../../api/axios';
+import { useContext } from 'react';
+import { AuthContext } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { FaScissors, FaSpinner } from 'react-icons/fa6';
 
 export default function Login() {
+  const { login } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const navigate = useNavigate();
 
-  const handleLogin = async e => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
     setErrorMsg('');
     
     try {
-      const res = await axios.post('/auth/login', { email, password });
-      const { access_token, user } = res.data;
-
-      localStorage.setItem('token', access_token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      if (user.is_admin) {
-        navigate('/admin');
-      } else if (user.is_stylist) {
-        navigate('/stylist/dashboard');
-      } else {
-        navigate('/customer/dashboard');
-      }
+      await login(email, password);
+      // The AuthProvider's login will handle the navigation
     } catch (err) {
-      setErrorMsg(err.response?.data?.error || 'Login failed. Please try again.');
+      setErrorMsg(err.message || 'Login failed');
     } finally {
       setIsLoading(false);
     }
@@ -57,7 +49,7 @@ export default function Login() {
               </div>
             )}
 
-            <form onSubmit={handleLogin}>
+            <form onSubmit={handleSubmit}>
               <div className="mb-6">
                 <label className="block text-gray-700 text-sm font-medium mb-2" htmlFor="email">
                   Email Address

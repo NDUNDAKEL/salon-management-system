@@ -72,9 +72,8 @@ The Salon Team
 @auth_bp.route('/login', methods=['POST', 'OPTIONS'])
 def login():
     if request.method == 'OPTIONS':
-        # Handle preflight request
         return jsonify({'status': 'ok'}), 200
-    
+
     data = request.get_json()
     email = data.get('email')
     password = data.get('password')
@@ -83,15 +82,19 @@ def login():
         return jsonify({"error": "Email and password required"}), 400
 
     user = User.query.filter_by(email=email).first()
+    
     if not user or not check_password_hash(user.password, password):
         return jsonify({"error": "Invalid credentials"}), 401
 
+    if user.is_blocked:
+        return jsonify({"error": "Your account has been blocked. Please contact support."}), 403
+
     access_token = create_access_token(
-        identity=user.id,
+        identity=str(user.id),
         expires_delta=timedelta(hours=1),
         additional_claims={
             'is_admin': user.is_admin,
-            'is_stylist': hasattr(user, 'stylist')  # Assuming you have a relationship
+            'is_stylist': hasattr(user, 'stylist')
         }
     )
 
@@ -128,11 +131,19 @@ def fetch_current_user():
 @auth_bp.route("/logout", methods=["DELETE"])
 @jwt_required()
 def logout():
-    jti = get_jwt()["jti"]
-    now = datetime.now(timezone.utc)
-
-    new_blocked_token = TokenBlocklist(jti=jti, created_at=now)
-    db.session.add(new_blocked_token)
-    db.session.commit()
-    return jsonify({"message": "Successfully logged out"}), 200
-
+    try:
+        jti = get_jwt()["jti"]
+        now = datetime.now(timezone.utc)
+        
+        # Check if token is already blacklisted
+        existing = TokenBlocklist.query.filter_by(jti=jti).first()
+        if existing:
+            return jsonify({"message": "Token already invalidated"}), 200
+            
+        new_blocked_token = TokenBlocklist(jti=jti, created_at=now)
+        db.session.add(new_blocked_token)
+        db.session.commit()
+        return jsonify({"message": "Successfully logged out"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"message": str(e)}), 422

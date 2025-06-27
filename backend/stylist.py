@@ -21,12 +21,14 @@ def create_stylist():
         return jsonify({"error": "Admin access required"}), 403
 
     data = request.get_json()
-    salon_id = data.get('salon_id')
+    salon_id = data.get('salon_id') or 1  # dynamically read from form
     name = data.get('name')
     specialization = data.get('specialization')
     bio = data.get('bio')
+    phone = data.get('phone')  # ✅ new
+    email = data.get('email')  # ✅ new
     service_ids = data.get('service_ids', [])
-    
+
     if not all([salon_id, name]):
         return jsonify({"error": "Salon ID and name are required"}), 400
 
@@ -39,17 +41,20 @@ def create_stylist():
             salon_id=salon_id,
             name=name,
             specialization=specialization,
-            bio=bio
+            bio=bio,
+            phone=phone,    # ✅ include phone
+            email=email     # ✅ include email
         )
 
         for service_id in service_ids:
             service = Service.query.get(service_id)
-            if service and service.salon_id == salon_id:
+            if service and service.salon_id == int(salon_id):
                 new_stylist.services.append(service)
 
         db.session.add(new_stylist)
         db.session.commit()
 
+        # Optional notification
         try:
             msg = Message(
                 subject="New Stylist Created",
@@ -60,7 +65,8 @@ Salon: {salon.name}"""
             )
             mail.send(msg)
         except Exception as e:
-             return jsonify({"error": str(e)}), 500
+            return jsonify({"error": str(e)}), 500
+
         return jsonify({
             "message": "Stylist created successfully",
             "stylist": new_stylist.to_dict(include_services=True)
@@ -82,6 +88,8 @@ def get_all_stylists():
         return jsonify([{
             "id": stylist.id,
             "name": stylist.name,
+            "email": stylist.email if stylist.email else None,
+            "phone": stylist.phone if stylist.phone else None,
             "specialization": stylist.specialization,
             "salon_id": stylist.salon_id,
             "salon_name": stylist.salon.name if stylist.salon else None,
@@ -94,8 +102,10 @@ def get_all_stylists():
             "is_active": stylist.is_active,
             "created_at": stylist.created_at.isoformat() if stylist.created_at else None
         } for stylist in stylists]), 200
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 # Get stylist by ID
 @stylist_bp.route('/stylists/<int:stylist_id>', methods=['GET'])
 def get_stylist(stylist_id):
@@ -132,21 +142,23 @@ def update_stylist(stylist_id):
         return jsonify({"error": "Admin access required"}), 403
 
     stylist = Stylist.query.get_or_404(stylist_id)
-    data = request.form
+    data = request.get_json()  # ✅ This handles JSON input now
 
-    if 'name' in data:
-        stylist.name = data['name']
-    if 'specialization' in data:
-        stylist.specialization = data['specialization']
-    if 'bio' in data:
-        stylist.bio = data['bio']
-    if 'salon_id' in data:
-        salon = Salon.query.get(data['salon_id'])
+    stylist.name = data.get('name', stylist.name)
+    stylist.email = data.get('email', stylist.email)
+    stylist.phone = data.get('phone', stylist.phone)
+    stylist.specialization = data.get('specialization', stylist.specialization)
+    stylist.bio = data.get('bio', stylist.bio)
+
+    salon_id = data.get('salon_id')
+    if salon_id:
+        salon = Salon.query.get(salon_id)
         if salon:
-            stylist.salon_id = data['salon_id']
+            stylist.salon_id = salon_id
 
-    if 'service_ids[]' in data:
-        service_ids = request.form.getlist('service_ids[]')
+    # Handle service IDs
+    service_ids = data.get('service_ids', [])
+    if isinstance(service_ids, list):
         stylist.services = []
         for service_id in service_ids:
             service = Service.query.get(service_id)
@@ -155,14 +167,7 @@ def update_stylist(stylist_id):
 
     db.session.commit()
 
-    return jsonify({
-        "message": "Stylist updated successfully",
-        "stylist": {
-            "id": stylist.id,
-            "name": stylist.name,
-            "services": [s.id for s in stylist.services]
-        }
-    }), 200
+    return jsonify({"message": "Stylist updated successfully"}), 200
 
 # Delete stylist (Admin only)
 @stylist_bp.route('/stylists/<int:stylist_id>', methods=['DELETE'])
