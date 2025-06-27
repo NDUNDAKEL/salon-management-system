@@ -3,17 +3,16 @@ import axios from 'axios';
 import { FaSpinner, FaTrashAlt, FaEdit } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
-export default function AdminAppointments({ token }) {
+export default function AdminAppointments() {
   const [appointments, setAppointments] = useState([]);
   const [loading, setLoading] = useState(true);
+const token = localStorage.getItem('token');
 
   const loadAdminAppointments = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://127.0.0.1:5000/api/customer/admin/appointments`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+      const response = await axios.get(`http://127.0.0.1:5000/api/customer/customers/admin/appointments`, {
+    
       });
       setAppointments(response.data);
     } catch (err) {
@@ -26,11 +25,16 @@ export default function AdminAppointments({ token }) {
 
   const deleteAppointment = async (appointmentId) => {
     try {
-      await axios.delete(`http://127.0.0.1:5000/api/customer/admin/appointments/${appointmentId}`, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+   await axios.delete(
+  `http://127.0.0.1:5000/api/customer/admin/appointments/${appointmentId}`,
+  {
+    headers: {
+      Authorization: `Bearer ${token}`
+    },
+    
+  }
+);
+
       toast.success('Appointment deleted');
       loadAdminAppointments(); // refresh
     } catch (err) {

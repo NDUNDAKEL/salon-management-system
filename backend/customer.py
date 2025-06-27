@@ -89,6 +89,8 @@ def admin_update_customer(customer_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
+    
+    # get all appointments admin
 @customer_bp.route("/admin/appointments", methods=["GET"])
 @jwt_required()
 def get_all_appointments_admin():
@@ -191,6 +193,91 @@ The Salon Team"""
         db.session.rollback()
         return jsonify({"error": "Failed to register or send welcome email"}), 500
 
+
+# Delete any appointment (admin only)
+@customer_bp.route("/admin/appointments/<int:appointment_id>", methods=["DELETE"])
+@jwt_required()
+def admin_delete_appointment(appointment_id):
+    current_user_id = int(get_jwt_identity())
+    current_user = User.query.get(current_user_id)
+
+    if not current_user or not current_user.is_admin:
+        return jsonify({"error": "Admin access required"}), 403
+
+    appointment = Appointment.query.get(appointment_id)
+    if not appointment:
+        return jsonify({"error": "Appointment not found"}), 404
+
+    try:
+        db.session.delete(appointment)
+        db.session.commit()
+        return jsonify({"message": "Appointment deleted successfully"}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
+
+
+# Get all appointments (admin only)
+
+@customer_bp.route("/customers/admin/appointments", methods=["GET"])
+
+def get_customer_appointments_admin():
+    
+
+    appointments = Appointment.query.all()
+
+    result = []
+    for app in appointments:
+        # Safest possible date/time formatting
+        def safe_date_format(d):
+            if not d:
+                return None
+            try:
+                if isinstance(d, str):
+                    return d.split()[0]  # Just get date part if it's a full datetime string
+                return d.strftime('%Y-%m-%d')
+            except Exception:
+                return None
+
+        def safe_time_format(t):
+            if not t:
+                return None
+            try:
+                if isinstance(t, str):
+                    if ':' in t:  # Basic check if it's a time string
+                        return t.split('T')[-1].split('.')[0]  # Handle ISO strings
+                    return None
+                return t.strftime('%H:%M:%S')
+            except Exception:
+                return None
+
+        def safe_datetime_format(dt):
+            if not dt:
+                return None
+            try:
+                if isinstance(dt, str):
+                    return dt  # Assume it's already properly formatted
+                return dt.isoformat()
+            except Exception:
+                return None
+
+        appointment_data = {
+            "id": app.id,
+            "stylist": getattr(app.stylist, 'name', None),
+            "service": getattr(app.service, 'name', None),
+            "status": app.status,
+            "salon": getattr(getattr(app.stylist, 'salon', None), 'name', None),
+            "appointment_date": safe_date_format(getattr(app, 'appointment_date', None)),
+            "appointment_time": safe_time_format(getattr(app, 'appointment_time', None)),
+            "start_datetime": safe_datetime_format(getattr(app, 'start_datetime', None)),
+            "end_datetime": safe_datetime_format(getattr(app, 'end_datetime', None))
+        }
+
+        result.append(appointment_data)
+
+    return jsonify(result), 200
+
+
 # Get customer profile
 @customer_bp.route("/customers/<int:customer_id>", methods=["GET"])
 @jwt_required()
@@ -270,21 +357,29 @@ The Salon Team"""
         db.session.rollback()
         return jsonify({"error": "Failed to update profile or send email"}), 500
 
-# Delete customer account
+# Delete customer account (self or admin)
 @customer_bp.route("/customers/<int:customer_id>", methods=["DELETE"])
 @jwt_required()
 def delete_customer(customer_id):
     current_user_id = int(get_jwt_identity())
-    if current_user_id != customer_id:
+    current_user = User.query.get(current_user_id)
+
+    if not current_user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Allow if the user is deleting themselves or is an admin
+    if current_user_id != customer_id and not current_user.is_admin:
         return jsonify({"error": "Unauthorized access"}), 403
 
     customer = User.query.get_or_404(customer_id)
 
+    # Delete related data
     Appointment.query.filter_by(customer_id=customer_id).delete()
     Review.query.filter_by(customer_id=customer_id).delete()
     SalonReview.query.filter_by(customer_id=customer_id).delete()
 
     try:
+        # Send deletion email
         msg = Message(
             subject="Your Account Has Been Deleted",
             recipients=[customer.email],
@@ -299,6 +394,7 @@ The Salon Team"""
 
         db.session.delete(customer)
         db.session.commit()
+
         return jsonify({"message": "Customer account deleted successfully"}), 200
 
     except Exception:

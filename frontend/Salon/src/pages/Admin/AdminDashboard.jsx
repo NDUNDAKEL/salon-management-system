@@ -102,9 +102,9 @@ console.log(users)
             </div>
           </div>
           
-          <div className="flex items-center space-x-4">
+          <div className="flex items-center space-x-4 cursor-pointer">
             <div className="flex items-center space-x-2 bg-white rounded-full px-4 py-2 shadow">
-              <div className="bg-purple-100 rounded-full p-2">
+              <div className="bg-purple-100 rounded-full p-2 cursor-pointer">
                 <FaUserCog className="text-purple-600" />
               </div>
               <span className="font-medium text-gray-700">{user?.username}</span>

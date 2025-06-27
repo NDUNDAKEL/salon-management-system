@@ -55,6 +55,7 @@ export default function ServiceList() {
       setDeletingId(id);
       await api.delete(`/salon/services/${id}`);
       toast.success('Service deleted');
+      fetchServices()
       setServices(prev => prev.filter(s => s.id !== id));
     } catch (err) {
       toast.error(err.response?.data?.error || 'Delete failed');
@@ -114,7 +115,6 @@ export default function ServiceList() {
                   <th className="px-4 py-2">Category</th>
                   <th className="px-4 py-2">Price</th>
                   <th className="px-4 py-2">Duration</th>
-                  <th className="px-4 py-2">Status</th>
                   <th className="px-4 py-2">Actions</th>
                 </tr>
               </thead>
@@ -125,11 +125,7 @@ export default function ServiceList() {
                     <td className="px-4 py-2">{service.category || '—'}</td>
                     <td className="px-4 py-2">{service.price}</td>
                     <td className="px-4 py-2">{service.duration} min</td>
-                    <td className="px-4 py-2">
-                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${service.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
-                        {service.is_active ? 'Active' : 'Inactive'}
-                      </span>
-                    </td>
+                    
                     <td className="px-4 py-2 flex space-x-2">
                       <button
                         onClick={() => handleEditClick(service)}

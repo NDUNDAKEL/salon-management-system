@@ -546,12 +546,12 @@ const cancelAppointment = async (appointmentId) => {
                         >
                           Cancel
                         </button>
-                        <button 
+                        {/* <button 
                           onClick={() => openRescheduleModal(appointment)}
                           className="text-purple-600 hover:text-purple-900"
                         >
                           Reschedule
-                        </button>
+                        </button> */}
                       </>
                     ) : (
                       <button 
