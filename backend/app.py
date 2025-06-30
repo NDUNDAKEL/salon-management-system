@@ -1,4 +1,8 @@
-from flask import Flask, request
+# ======================================
+# app.py — Main Entry Point
+# ======================================
+
+from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from flask_migrate import Migrate
@@ -7,20 +11,19 @@ from flask_cors import CORS
 from datetime import timedelta
 import os
 from dotenv import load_dotenv
-from models import db  # Your SQLAlchemy instance
-
-# Load environment variables from .env
-load_dotenv()
 
 # Initialize extensions
+db = SQLAlchemy()
 jwt = JWTManager()
 migrate = Migrate()
 mail = Mail()
 
 def create_app():
+    load_dotenv()  # Load .env locally
+
     app = Flask(__name__)
 
-    # App configuration
+    # === Configuration ===
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///salon.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'super-secret-key')
@@ -29,29 +32,32 @@ def create_app():
     app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
     app.config['JWT_ACCESS_COOKIE_PATH'] = '/api/'
     app.config['JWT_REFRESH_COOKIE_PATH'] = '/api/auth/refresh'
-    app.config['JWT_COOKIE_SECURE'] = False  # Set to True in production (HTTPS)
+    app.config['JWT_COOKIE_SECURE'] = os.getenv('FLASK_ENV') == 'production'
     app.config['JWT_COOKIE_SAMESITE'] = 'Lax'
 
-    # Mail configuration
+    # Mail config
     app.config['MAIL_SERVER'] = 'smtp.gmail.com'
     app.config['MAIL_PORT'] = 587
     app.config['MAIL_USE_TLS'] = True
     app.config['MAIL_USERNAME'] = os.getenv('MAIL_USERNAME')
     app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME')
- 
-    # Initialize CORS
-    CORS(app, 
-     supports_credentials=True,
-     resources={
-         r"/api/*": {
-             "origins": ["http://localhost:5173", "http://127.0.0.1:5173"],
+
+    # Enable CORS
+    CORS(app,
+         supports_credentials=True,
+         resources={r"/api/*": {
+             "origins": [
+                 "http://localhost:5173",
+                 "http://127.0.0.1:5173",
+                 os.getenv('FRONTEND_URL')
+             ],
              "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-             "allow_headers": ["Content-Type", "Authorization", "X-Requested-With"],
+             "allow_headers": ["Content-Type", "Authorization"],
              "expose_headers": ["Content-Type", "Authorization"],
              "max_age": 86400
-         }
-     })
+         }}
+    )
 
     # Initialize extensions
     db.init_app(app)
@@ -60,6 +66,7 @@ def create_app():
     mail.init_app(app)
 
     # Register blueprints
+    from models import db  # Ensure models are loaded
     from auth import auth_bp
     from customer import customer_bp
     from stylist import stylist_bp
@@ -74,7 +81,7 @@ def create_app():
 
     return app
 
-# Create app and run
+# Create Flask app
 app = create_app()
 
 if __name__ == '__main__':
