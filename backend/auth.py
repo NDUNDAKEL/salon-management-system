@@ -1,5 +1,5 @@
 from flask import Blueprint, current_app, request, jsonify
-from models import db, User, TokenBlocklist
+from models import db, User, TokenBlocklist,Stylist
 from werkzeug.security import check_password_hash
 from datetime import timedelta
 from flask_jwt_extended import (
@@ -82,7 +82,7 @@ def login():
         return jsonify({"error": "Email and password required"}), 400
 
     user = User.query.filter_by(email=email).first()
-    
+
     if not user or not check_password_hash(user.password, password):
         return jsonify({"error": "Invalid credentials"}), 401
 
@@ -94,18 +94,35 @@ def login():
         expires_delta=timedelta(hours=1),
         additional_claims={
             'is_admin': user.is_admin,
-            'is_stylist': hasattr(user, 'stylist')
+            'is_stylist': user.is_stylist
         }
     )
 
+    # Base user response
+    user_data = {
+        "id": user.id,
+        "email": user.email,
+        "username": user.username,
+        "is_admin": user.is_admin,
+        "is_stylist": user.is_stylist
+    }
+
+    # Include stylist info if applicable
+    if user.is_stylist:
+        stylist = Stylist.query.filter_by(email=user.email).first()
+        if stylist:
+            user_data["stylist_id"] = stylist.id
+            user_data["stylist_info"] = {
+                "name": stylist.name,
+                "salon_id": stylist.salon_id,
+                "specialization": stylist.specialization,
+                "bio": stylist.bio,
+                "phone": stylist.phone
+            }
+
     return jsonify({
         "access_token": access_token,
-        "user": {
-            "id": user.id,
-            "email": user.email,
-            "username": user.username,
-            "is_admin": user.is_admin
-        }
+        "user": user_data
     }), 200
 
 @auth_bp.route("/current_user", methods=["GET"])

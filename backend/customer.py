@@ -283,16 +283,35 @@ def get_customer_appointments_admin():
 @jwt_required()
 def get_customer(customer_id):
     current_user_id = get_jwt_identity()
+
     if current_user_id != customer_id:
         return jsonify({"error": "Unauthorized access"}), 403
 
     customer = User.query.get_or_404(customer_id)
-    return jsonify({
+
+    response = {
         "id": customer.id,
         "username": customer.username,
         "email": customer.email,
-        "created_at": customer.created_at
-    }), 200
+        "created_at": customer.created_at,
+        "is_stylist": customer.is_stylist
+    }
+
+    # If the user is a stylist, fetch stylist details
+    if customer.is_stylist:
+        stylist = Stylist.query.filter_by(email=customer.email).first()
+        if stylist:
+            response["stylist_id"] = stylist.id
+            response["stylist_info"] = {
+                "name": stylist.name,
+                "salon_id": stylist.salon_id,
+                "phone": stylist.phone,
+                "specialization": stylist.specialization,
+                "bio": stylist.bio,
+                "user_id": stylist.user_id
+            }
+
+    return jsonify(response), 200
 
 #update
 @customer_bp.route("/customers/<int:customer_id>", methods=["PATCH"])
@@ -449,19 +468,59 @@ def get_customer_appointments(customer_id):
         appointment_data = {
             "id": app.id,
             "stylist": getattr(app.stylist, 'name', None),
+            "stylist_id": app.stylist_id,  
             "service": getattr(app.service, 'name', None),
             "status": app.status,
             "salon": getattr(getattr(app.stylist, 'salon', None), 'name', None),
             "appointment_date": safe_date_format(getattr(app, 'appointment_date', None)),
             "appointment_time": safe_time_format(getattr(app, 'appointment_time', None)),
             "start_datetime": safe_datetime_format(getattr(app, 'start_datetime', None)),
-            "end_datetime": safe_datetime_format(getattr(app, 'end_datetime', None))
+            "end_datetime": safe_datetime_format(getattr(app, 'end_datetime', None)),
+         
         }
 
         result.append(appointment_data)
 
     return jsonify(result), 200
 
+#post review
+@customer_bp.route('/reviews', methods=['POST'])
+@jwt_required()
+def create_review():
+    data = request.get_json()
+    
+    customer_id = int(get_jwt_identity())  # Assumes JWT stores customer ID
+    stylist_id = data.get('stylist_id')
+    appointment_id = data.get('appointment_id')
+    rating = data.get('rating')
+    comment = data.get('comment', '')
+
+    # Validate appointment
+    appointment = Appointment.query.get(appointment_id)
+    if not appointment:
+        return jsonify({'error': 'Appointment not found'}), 404
+    if appointment.status != 'completed':
+        return jsonify({'error': 'Can only review completed appointments'}), 400
+    if appointment.customer_id != customer_id:
+        print(type(customer_id))  # from JWT
+        print(type(appointment.customer_id))  # from DB
+
+        print("JWT Customer ID:", customer_id)
+        print("Appointment Customer ID:", appointment.customer_id)
+
+        return jsonify({'error': 'You can only review your own appointments'}), 403
+
+    review = Review(
+        customer_id=customer_id,
+        stylist_id=stylist_id,
+        appointment_id=appointment_id,
+        rating=rating,
+        comment=comment
+    )
+    db.session.add(review)
+    db.session.commit()
+
+    return jsonify({'message': 'Review submitted successfully', 'review': review.to_dict()}), 201
 
 #delete appointment
 @customer_bp.route("/customers/<int:customer_id>/appointments/<int:appointment_id>", methods=["DELETE"])
@@ -487,7 +546,7 @@ def delete_customer_appointment(customer_id, appointment_id):
 @customer_bp.route("/customers/<int:customer_id>/reviews", methods=["GET"])
 @jwt_required()
 def get_customer_reviews(customer_id):
-    current_user_id =int(get_jwt_identity())
+    current_user_id = int(get_jwt_identity())
     if current_user_id != customer_id:
         return jsonify({"error": "Unauthorized access"}), 403
 
@@ -497,25 +556,34 @@ def get_customer_reviews(customer_id):
     if not stylist_reviews and not salon_reviews:
         return jsonify({"message": "You haven't reviewed any stylists or salons yet."}), 200
 
+    stylist_data = []
+    for rev in stylist_reviews:
+        service_name = None
+        if rev.appointment and rev.appointment.service:
+            service_name = rev.appointment.service.name
+
+        stylist_data.append({
+            "id": rev.id,
+            "stylist": rev.stylist.name if rev.stylist else None,
+            "service": service_name,
+            "rating": rev.rating,
+            "comment": rev.comment,
+            "created_at": rev.created_at.isoformat() if rev.created_at else None
+        })
+
+    salon_data = []
+    for rev in salon_reviews:
+        salon_data.append({
+            "id": rev.id,
+            "salon": rev.salon.name if rev.salon else None,
+            "rating": rev.rating,
+            "comment": rev.comment,
+            "created_at": rev.created_at.isoformat() if rev.created_at else None
+        })
+
     return jsonify({
-        "stylist": [
-            {
-                "id": rev.id,
-                "stylist": rev.stylist.name,
-                "rating": rev.rating,
-                "comment": rev.comment,
-                "created_at": rev.created_at.isoformat()
-            } for rev in stylist_reviews
-        ],
-        "salon": [
-            {
-                "id": rev.id,
-                "salon": rev.salon.name,
-                "rating": rev.rating,
-                "comment": rev.comment,
-                "created_at": rev.created_at.isoformat()
-            } for rev in salon_reviews
-        ]
+        "stylist": stylist_data,
+        "salon": salon_data
     }), 200
 
 @customer_bp.route("/customers/<int:customer_id>/appointments", methods=["POST"])

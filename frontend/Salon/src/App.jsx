@@ -13,6 +13,7 @@ import Register from './pages/Auth/Register';
 import Login from './pages/Auth/Login';
 import Home from './pages/Home';
 import ProtectedRoute from './components/ProtectedRoute';
+import StylistDashboard from './pages/StylistDashboard';
 
 function App() {
 
@@ -67,6 +68,14 @@ function App() {
             <ProtectedRoute adminOnly={true}>
               <AdminDashboard />
             </ProtectedRoute>
+          }
+        />
+           <Route
+          path="/stylist"
+          element={
+            // <ProtectedRoute adminOnly={true}>
+             <StylistDashboard/>
+            // </ProtectedRoute>
           }
         />
         <Route path="*" element={<p className="p-6">Page not found</p>} />

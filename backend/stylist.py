@@ -5,6 +5,7 @@ from flask_mail import Message
 from datetime import datetime, timedelta
 from app import mail
 
+
 stylist_bp = Blueprint('stylist_bp', __name__)
 
 # Helper function to check if user is admin
@@ -13,7 +14,6 @@ def is_admin():
     user = User.query.get(current_user_id)
     return user and user.is_admin
 
-# Create a new stylist (Admin only)
 @stylist_bp.route('/stylists', methods=['POST'])
 @jwt_required()
 def create_stylist():
@@ -21,55 +21,84 @@ def create_stylist():
         return jsonify({"error": "Admin access required"}), 403
 
     data = request.get_json()
-    salon_id = data.get('salon_id') or 1  # dynamically read from form
+    salon_id = data.get('salon_id') or 1
     name = data.get('name')
+    email = data.get('email')
+    phone = data.get('phone')
     specialization = data.get('specialization')
     bio = data.get('bio')
-    phone = data.get('phone')  # ✅ new
-    email = data.get('email')  # ✅ new
     service_ids = data.get('service_ids', [])
+    username = data.get('username') or email.split('@')[0]
+    password = data.get('password') or "123456"
 
-    if not all([salon_id, name]):
-        return jsonify({"error": "Salon ID and name are required"}), 400
+    if not all([salon_id, name, email]):
+        return jsonify({"error": "Salon ID, name, and email are required"}), 400
+
+    if User.query.filter_by(email=email).first():
+        return jsonify({"error": "Email already in use"}), 409
 
     salon = Salon.query.get(salon_id)
     if not salon:
         return jsonify({"error": "Salon not found"}), 404
 
     try:
+        # Step 1: Create the user (don't commit yet)
+        user = User(
+            username=username,
+            email=email,
+            phone=phone,
+            is_stylist=True,
+            is_admin=False
+        )
+        user.set_password(password)
+        db.session.add(user)
+        db.session.flush()  # So we can get user.id
+
+        # Step 2: Create the stylist
         new_stylist = Stylist(
+            user_id=user.id,
             salon_id=salon_id,
             name=name,
+            email=email,
+            phone=phone,
             specialization=specialization,
-            bio=bio,
-            phone=phone,    # ✅ include phone
-            email=email     # ✅ include email
+            bio=bio
         )
+        db.session.add(new_stylist)
+        db.session.flush()  # Get stylist.id
 
+        # Step 3: Link stylist ID to user
+        user.stylist_id = new_stylist.id
+
+        # Step 4: Attach services
         for service_id in service_ids:
             service = Service.query.get(service_id)
             if service and service.salon_id == int(salon_id):
                 new_stylist.services.append(service)
 
-        db.session.add(new_stylist)
+        # Step 5: Commit all
         db.session.commit()
 
-        # Optional notification
+        # Step 6: Send welcome email
         try:
             msg = Message(
-                subject="New Stylist Created",
-                recipients=["admin@example.com"],
-                body=f"""New stylist added:
-Name: {new_stylist.name}
-Salon: {salon.name}"""
+                subject="Your Stylist Account",
+                recipients=[email],
+                body=f"""Welcome {name}!
+
+Your stylist account has been created.
+Username: {username}
+Temporary Password: {password}
+
+Please change your password after first login."""
             )
             mail.send(msg)
         except Exception as e:
-            return jsonify({"error": str(e)}), 500
+            app.logger.error(f"Failed to send email: {str(e)}")
 
         return jsonify({
             "message": "Stylist created successfully",
-            "stylist": new_stylist.to_dict(include_services=True)
+            "stylist": new_stylist.to_dict(include_services=True, include_user=True)
         }), 201
 
     except Exception as e:
@@ -168,6 +197,86 @@ def update_stylist(stylist_id):
     db.session.commit()
 
     return jsonify({"message": "Stylist updated successfully"}), 200
+
+
+#get stylist appointments
+
+
+@stylist_bp.route("/stylists/<int:stylist_id>/appointments", methods=["GET"])
+@jwt_required()
+def get_customer_appointments(stylist_id):
+    
+    appointments = Appointment.query.filter_by(stylist_id=stylist_id).all()
+
+    result = []
+    for app in appointments:
+        # Safest possible date/time formatting
+        def safe_date_format(d):
+            if not d:
+                return None
+            try:
+                if isinstance(d, str):
+                    return d.split()[0]  # Just get date part if it's a full datetime string
+                return d.strftime('%Y-%m-%d')
+            except Exception:
+                return None
+
+        def safe_time_format(t):
+            if not t:
+                return None
+            try:
+                if isinstance(t, str):
+                    if ':' in t:  # Basic check if it's a time string
+                        return t.split('T')[-1].split('.')[0]  # Handle ISO strings
+                    return None
+                return t.strftime('%H:%M:%S')
+            except Exception:
+                return None
+
+        def safe_datetime_format(dt):
+            if not dt:
+                return None
+            try:
+                if isinstance(dt, str):
+                    return dt  # Assume it's already properly formatted
+                return dt.isoformat()
+            except Exception:
+                return None
+
+        appointment_data = {
+            "id": app.id,
+            "stylist": getattr(app.stylist, 'name', None),
+            "service": getattr(app.service, 'name', None),
+            "status": app.status,
+            "salon": getattr(getattr(app.stylist, 'salon', None), 'name', None),
+            "appointment_date": safe_date_format(getattr(app, 'appointment_date', None)),
+            "appointment_time": safe_time_format(getattr(app, 'appointment_time', None)),
+            "start_datetime": safe_datetime_format(getattr(app, 'start_datetime', None)),
+            "end_datetime": safe_datetime_format(getattr(app, 'end_datetime', None))
+        }
+
+        result.append(appointment_data)
+
+    return jsonify(result), 200
+
+#mark cmpleteappointment
+@stylist_bp.route("/stylists/appointments/<int:id>", methods=["PATCH"])
+@jwt_required()
+def update_appointments(id):
+    appointment = Appointment.query.get_or_404(id)
+
+    # Toggle logic: if completed, set to pending; else set to completed
+    if appointment.status == "completed":
+        appointment.status = "pending"
+    else:
+        appointment.status = "completed"
+
+    db.session.commit()
+
+    return jsonify({
+        "message": "Appointment status toggled",
+        "new_status": appointment.status
+    }), 200
 
 # Delete stylist (Admin only)
 @stylist_bp.route('/stylists/<int:stylist_id>', methods=['DELETE'])

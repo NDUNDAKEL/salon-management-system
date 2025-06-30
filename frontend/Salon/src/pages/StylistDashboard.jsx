@@ -3,8 +3,6 @@ import axios from 'axios';
 import { useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import BookingModal from '../components/BookingModal';
-import ReviewModal from './ReviewModal';
 
 import { 
   FaCalendarAlt, 
@@ -12,22 +10,15 @@ import {
   FaStar, 
   FaSpinner, 
   FaCut, 
-  FaHandSparkles, 
-  FaSpa, 
-  FaPalette,
   FaTimes,
-  FaChevronDown,
-  FaChevronUp,
-  FaEdit,
-  FaTrash
+  
 } from 'react-icons/fa';
 import { FiLogOut } from 'react-icons/fi';
 import { toast } from 'react-toastify';
 
-export default function CustomerDashboard() {
-  const [activeTab, setActiveTab] = useState('services');
-  const [rating, setRating] = useState(5);
-  const [comment, setComment] = useState('');
+export default function StylistDashboard() {
+  const [activeTab, setActiveTab] = useState('');
+
 
     const { user, logout } = useContext(AuthContext); // Use context user
   const [services, setServices] = useState([]);
@@ -43,15 +34,7 @@ const [reviews, setReviews] = useState({
     appointments: false,
     reviews: false
   });
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [showBookingModal, setShowBookingModal] = useState(false);
-  const [selectedService, setSelectedService] = useState(null);
-  const [stylists, setStylists] = useState([]);
-  const [bookingData, setBookingData] = useState({
-    stylist_id: '',
-    appointment_date: '',
-    appointment_time: '09:00'
-  });
+
 const [profileForm, setProfileForm] = useState({
   username: user.username || '',
   email: user.email || '',
@@ -134,7 +117,7 @@ const loadAppointments = async () => {
   setLoading(prev => ({ ...prev, appointments: true }));
   try {
       
-    const response = await axios.get(`http://127.0.0.1:5000/api/customer/customers/${user.id}/appointments`, {
+    const response = await axios.get(`http://127.0.0.1:5000/api/stylist/stylists/${user.stylist_id}/appointments`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -159,26 +142,20 @@ const loadAppointments = async () => {
   }
 };
 
-// useEffect to load reviews on mount or when user/token changes
-useEffect(() => {
-  loadReviews();
-}, [user.id, token]);
-
-// Load Reviews function
 const loadReviews = async () => {
   setLoading(prev => ({ ...prev, reviews: true }));
-
   try {
-    const response = await axios.get(`http://127.0.0.1:5000/api/customer/customers/${user.id}/reviews`, {
+    const response = await axios.get(`/customers/${user.id}/reviews`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
     });
 
+    // ✅ Ensure reviews always has stylist and salon arrays
     if (Array.isArray(response.data.stylist) && Array.isArray(response.data.salon)) {
       setReviews(response.data);
     } else {
-      setReviews({ stylist: [], salon: [] }); // fallback to avoid crash
+      setReviews({ stylist: [], salon: [] }); // fallback structure
     }
 
   } catch (err) {
@@ -198,11 +175,6 @@ const loadReviews = async () => {
   const handleLogout = () => {
     logout(); 
   };
-
-
- 
-
-
 
 const handleProfileUpdate = async (e) => {
   e.preventDefault();
@@ -271,26 +243,28 @@ const handleProfileUpdate = async (e) => {
     }
   };
 
-const cancelAppointment = async (appointmentId) => {
+const completeAppointment =  async (appointmentId) => {
   try {
-    await axios.delete(`http://127.0.0.1:5000/api/customer/customers/${user.id}/appointments/${appointmentId}`, {
-      headers: {
-        Authorization: `Bearer ${token}`
+    const response = await axios.patch(
+      `http://127.0.0.1:5000/api/stylist/stylists/appointments/${appointmentId}`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
       }
-    });
+    );
 
-    toast.success('Appointment cancelled');
+    toast.success(`Appointment is now ${response.data.new_status}`);
     loadAppointments(); // Refresh the list
   } catch (err) {
-    toast.error(err.response?.data?.error || 'Failed to cancel appointment');
+    toast.error(err.response?.data?.error || 'Failed to toggle appointment status');
     console.error(err);
   }
 };
 
 
-  const filteredServices = selectedCategory === 'all' 
-    ? services 
-    : services.filter(service => service.category === selectedCategory);
+
 
   if (loading.user) {
     return (
@@ -299,52 +273,42 @@ const cancelAppointment = async (appointmentId) => {
       </div>
     );
   }
-
+console.log("user",user)
   if (!user) {
     return null; // or redirect to login
   }
-const [showReviewModal, setShowReviewModal] = useState(false);
-const [selectedAppointment, setSelectedAppointment] = useState(null);
+    const {
+    id,
+    email,
+    username,
+    is_admin,
+    is_stylist,
+    stylist_id,
+    stylist_info
+  } = user;
 
-const openReviewModal = (appointment) => {
-  setSelectedAppointment(appointment);
-  setShowReviewModal(true);
-};
-
-const submitReview = async (reviewData) => {
-  try {
-    await axios.post('http://127.0.0.1:5000/api/customer/reviews', reviewData, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    toast.success('Review submitted!');
-    setShowReviewModal(false);
-  } catch (err) {
-    toast.error(err.response?.data?.error || 'Failed to submit review');
-    console.error(err);
-  }
-};;
-
+ console.log('services',services)
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
       {/* Header */}
-     <header className="bg-gradient-to-r from-purple-50 to-pink-50 shadow-lg">
+     <header className="bg-gradient-to-r from-green-50 to-orange-50 shadow-lg">
   <div className="max-w-7xl mx-auto px-4 py-4 sm:px-6 lg:px-8 flex justify-between items-center">
     <div className="flex items-center">
-      <div className="mr-3 text-pink-500">
+      <div className="mr-3 text-blue-500">
         <FaCut className="text-3xl" /> {/* Using a salon-related icon */}
       </div>
       <div>
         <h1 className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-pink-500 bg-clip-text text-transparent">
         LUXE SALON
         </h1>
-        <p className="text-sm text-gray-500 italic">Where beauty meets authenticity</p>
+        
       </div>
     </div>
     
     <div className="flex items-center space-x-6">
       <div className="flex items-center space-x-3">
         <div className="relative">
-          <div className="absolute -inset-1 bg-gradient-to-r from-purple-400 to-pink-400 rounded-full blur opacity-75"></div>
+          <div className="absolute -inset-1 bg-gradient-to-r from-indigo-300 to-pink-200 rounded-full blur opacity-75"></div>
           <div className="relative bg-white rounded-full p-2">
             <FaUser className="text-purple-600" />
           </div>
@@ -374,21 +338,11 @@ const submitReview = async (reviewData) => {
                 </div>
                 <h3 className="font-semibold text-lg">{user.username}</h3>
                 <p className="text-gray-500 text-sm">{user.email}</p>
+             
               </div>
-<ReviewModal
-  show={showReviewModal}
-  onClose={() => setShowReviewModal(false)}
-  onSubmit={submitReview}
-  appointment={selectedAppointment}
-/>
+
               <nav className="space-y-2">
-                <button
-                  onClick={() => setActiveTab('services')}
-                  className={`w-full text-left px-4 py-3 rounded-lg flex items-center ${activeTab === 'services' ? 'bg-purple-100 text-purple-700' : 'text-gray-600 hover:bg-gray-100'}`}
-                >
-                  <FaCut className="mr-3" />
-                  Services & Booking
-                </button>
+            
                 <button
                   onClick={() => setActiveTab('appointments')}
                   className={`w-full text-left px-4 py-3 rounded-lg flex items-center ${activeTab === 'appointments' ? 'bg-purple-100 text-purple-700' : 'text-gray-600 hover:bg-gray-100'}`}
@@ -417,81 +371,35 @@ const submitReview = async (reviewData) => {
           {/* Main Content */}
           <div className="lg:col-span-3">
             {/* Services Tab */}
-            {activeTab === 'services' && (
-              <div className="bg-white rounded-lg shadow-md p-6">
-                <h2 className="text-2xl font-bold text-gray-800 mb-6">Our Services</h2>
-                
-                {/* Category Filters */}
-                
-              <div className="flex space-x-2 overflow-x-auto pb-4 mb-6">
-  <button
-    onClick={() => setSelectedCategory('all')}
-    className={`px-4 py-2 rounded-full font-medium whitespace-nowrap ${selectedCategory === 'all' ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-  >
-    All Services
-  </button>
+          {/* Initial Info Card */}
+{activeTab === '' && (
+  <div className="bg-white rounded-lg shadow-md p-6">
+    <h2 className="text-2xl font-bold text-gray-800 mb-4">Welcome, {user.username}!</h2>
+    <p className="text-gray-600 mb-2">Here’s your account overview:</p>
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+      <div className="space-y-2">
+        <p><span className="font-semibold text-gray-700">Email:</span> {user.email}</p>
+        <p><span className="font-semibold text-gray-700">Username:</span> {user.username}</p>
+        <p><span className="font-semibold text-gray-700">Account Type:</span> {user.is_admin ? 'Admin' : user.is_stylist ? 'Stylist' : 'Customer'}</p>
+        {user.is_stylist && (
+          <p><span className="font-semibold text-gray-700">Stylist ID:</span> {user.stylist_id}</p>
+        )}
+      </div>
 
-  {[...new Set(services.map(service => service.category))].map((category) => (
-    <button
-      key={category}
-      onClick={() => setSelectedCategory(category)}
-      className={`px-4 py-2 rounded-full font-medium whitespace-nowrap ${selectedCategory === category ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-700'}`}
-    >
-      {category.charAt(0).toUpperCase() + category.slice(1)}
-    </button>
-  ))}
-</div>
+      {user.is_stylist && user.stylist_info && (
+        <div className="bg-purple-50 rounded-lg p-4">
+          <h3 className="font-semibold text-purple-700 mb-2">Stylist Profile</h3>
+          <p><strong>Name:</strong> {user.stylist_info.name}</p>
+          <p><strong>Phone:</strong> {user.stylist_info.phone}</p>
+          <p><strong>Salon ID:</strong> {user.stylist_info.salon_id}</p>
+          <p><strong>Specialization:</strong> {user.stylist_info.specialization}</p>
+          <p><strong>Bio:</strong> {user.stylist_info.bio}</p>
+        </div>
+      )}
+    </div>
+  </div>
+)}
 
-
-
-                {loading.services ? (
-                  <div className="flex justify-center py-12">
-                    <FaSpinner className="animate-spin text-4xl text-purple-600" />
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredServices.map(service => (
-                      <div 
-                        key={service.id} 
-                        className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-lg transition-shadow"
-                      >
-                        <div className="h-48 overflow-hidden">
-                         <img 
-  src='salon-collection.jpeg' 
-  alt={service.name} 
-  className="w-full h-full object-cover"
-/>
-
-                        </div>
-                        <div className="p-4">
-                          <div className="flex justify-between items-start mb-2">
-                            <h3 className="font-bold text-lg">{service.name}</h3>
-                            <span className="bg-purple-100 text-purple-800 px-2 py-1 rounded text-sm">
-                              ${service.price}
-                            </span>
-                          </div>
-                          <p className="text-gray-600 text-sm mb-4">{service.description}</p>
-                          {service.stylists && service.stylists.length > 0 && (
-                    <span className="mr-2 text-gray-500">
-                      Stylist: {service.stylists[0].name}
-                    </span>
-                  )}
-                          <div className="flex justify-between items-center text-sm text-gray-500">
-                            <span><FaCut className="inline mr-1" /> {service.duration} min</span>
-                            <button
-                              onClick={() => handleServiceClick(service)}
-                              className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
-                            >
-                              Book Now
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
 
             {/* Appointments Tab */}
        {activeTab === 'appointments' && (
@@ -514,6 +422,7 @@ const submitReview = async (reviewData) => {
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date & Time</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Service</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stylist</th>
+               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Salon</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
@@ -569,7 +478,7 @@ const submitReview = async (reviewData) => {
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full 
-                      ${appointment.status === 'confirmed' ? 'bg-green-100 text-green-800' : 
+                      ${appointment.status === 'completed' ? 'bg-green-100 text-green-800' : 
                         appointment.status === 'pending' ? 'bg-yellow-100 text-yellow-800' : 
                         'bg-red-100 text-red-800'}`}
                     >
@@ -577,36 +486,26 @@ const submitReview = async (reviewData) => {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-  {appointment.status === 'pending' || appointment.status === 'confirmed' ? (
-    <>
-      <button 
-        onClick={() => cancelAppointment(appointment.id)}
-        className="text-red-600 hover:text-red-900 mr-4"
-      >
-        Cancel
-      </button>
-    </>
-  ) : (
-    <>
-      <button 
-        onClick={() => bookAgain(appointment.service_id)}
-        className="text-purple-600 hover:text-purple-900 mr-4"
-      >
-        Book Again
-      </button>
-
-      {appointment.status === 'completed' && (
-        <button 
-          onClick={() => openReviewModal(appointment)}
-          className="text-blue-600 hover:text-blue-900"
-        >
-          Leave Review
-        </button>
-      )}
-    </>
-  )}
-</td>
-
+                 
+                      <>
+                        <button 
+                          onClick={() => completeAppointment(appointment.id)}
+                          className="mr-4"
+                        >
+                          <p className={`${appointment.status == 'completed' ? 'text-gray-500' : 'text-green-600'}`}>
+                                {appointment.status == 'completed' ? 'set to pending' : 'set complete'}
+                          </p>
+                      
+                        </button>
+                        {/* <button 
+                          onClick={() => openRescheduleModal(appointment)}
+                          className="text-purple-600 hover:text-purple-900"
+                        >
+                          Reschedule
+                        </button> */}
+                      </>
+                 
+                  </td>
                 </tr>
               );
             })}
@@ -619,28 +518,64 @@ const submitReview = async (reviewData) => {
 
             {/* Reviews Tab */}
             {activeTab === 'reviews' && (
-             <div className="p-4 space-y-4">
-      <h2 className="text-xl font-bold">Stylist Reviews</h2>
-      {reviews.stylist.map((rev) => (
-        <div key={rev.id} className="p-4 border rounded shadow">
-          <p><strong>Stylist:</strong> {rev.stylist}</p>
-          <p><strong>Service:</strong> {rev.service}</p>
-          <p><strong>Rating:</strong> {rev.rating}</p>
-          <p><strong>Comment:</strong> {rev.comment}</p>
-          <p className="text-sm text-gray-500">{new Date(rev.created_at).toLocaleString()}</p>
-        </div>
-      ))}
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-2xl font-bold text-gray-800 mb-6">My Reviews</h2>
+                
+                {loading.reviews ? (
+                  <div className="flex justify-center py-12">
+                    <FaSpinner className="animate-spin text-4xl text-purple-600" />
+                  </div>
+                ) : (
+                  <div className="space-y-8">
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4 text-purple-700">Stylist Reviews</h3>
+{Array.isArray(reviews?.stylist) && reviews.stylist.length === 0 ? (
+  <div className="text-center py-8 text-gray-500">
+    You haven't reviewed any stylists yet.
+  </div>
+) : (
+  <div className="space-y-4">
+    {/* reviews.stylist.map... */}
+  </div>
+)}
 
-      <h2 className="text-xl font-bold mt-6">Salon Reviews</h2>
-      {reviews.salon.map((rev) => (
-        <div key={rev.id} className="p-4 border rounded shadow">
-          <p><strong>Salon:</strong> {rev.salon}</p>
-          <p><strong>Rating:</strong> {rev.rating}</p>
-          <p><strong>Comment:</strong> {rev.comment}</p>
-          <p className="text-sm text-gray-500">{new Date(rev.created_at).toLocaleString()}</p>
+
+                    </div>
+                    
+                    <div>
+                      <h3 className="text-xl font-semibold mb-4 text-purple-700">Salon Reviews</h3>
+                  {reviews.salon.length === 0 ? (
+  <div className="text-center py-8 text-gray-500">
+    You haven't reviewed the salon yet.
+  </div>
+) : (
+  <div className="space-y-4">
+    {reviews.salon.map(review => (
+      <div key={review.id} className="bg-gray-50 p-4 rounded-lg">
+        <div className="flex justify-between items-start mb-2">
+          <h4 className="font-medium">{review.salon}</h4>
+          <div className="flex">
+            {[...Array(5)].map((_, i) => (
+              <FaStar 
+                key={i} 
+                className={i < review.rating ? "text-yellow-400" : "text-gray-300"} 
+              />
+            ))}
+          </div>
         </div>
-      ))}
-    </div>
+        <p className="text-gray-700 mb-2">{review.comment || 'No comment provided'}</p>
+        <p className="text-xs text-gray-500">
+          Reviewed on {new Date(review.created_at).toLocaleDateString()}
+        </p>
+      </div>
+    ))}
+  </div>
+)}
+
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {/* Profile Tab */}
@@ -747,15 +682,7 @@ const submitReview = async (reviewData) => {
         </div>
       </div>
 
-      {/* Booking Modal */}
-    <BookingModal
-  showBookingModal={showBookingModal}
-  setShowBookingModal={setShowBookingModal}
-  selectedService={selectedService}
-  user={user} // { id: 3, ... }
-  token={token} // JWT token from your auth system
-  loadAppointments={loadAppointments} // Optional callback to refresh appointments
-/>
+  
 
       {/* Delete Account Confirmation Modal */}
       {showDeleteConfirm && (
@@ -794,10 +721,3 @@ const submitReview = async (reviewData) => {
   );
 }
 
-function newFunction(setStylists) {
-  setStylists([
-    { id: 1, name: "Emma Johnson", specialty: "Hair Stylist" },
-    { id: 2, name: "Sophia Martinez", specialty: "Color Specialist" },
-    { id: 3, name: "Olivia Smith", specialty: "Nail Technician" }
-  ]);
-}
