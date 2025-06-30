@@ -1,5 +1,6 @@
 
-## youtube video link 
+## youtube video link -
+Video is uploading, remaining approximatedly 10 mins
 
 # Salon System
 
