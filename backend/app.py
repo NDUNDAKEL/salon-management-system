@@ -1,6 +1,4 @@
-# ======================================
-# app.py — Main Entry Point
-# ======================================
+# app.py
 
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
@@ -19,11 +17,10 @@ migrate = Migrate()
 mail = Mail()
 
 def create_app():
-    load_dotenv()  # Load .env locally
+    load_dotenv()
 
     app = Flask(__name__)
 
-    # === Configuration ===
     app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///salon.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'super-secret-key')
@@ -43,7 +40,7 @@ def create_app():
     app.config['MAIL_PASSWORD'] = os.getenv('MAIL_PASSWORD')
     app.config['MAIL_DEFAULT_SENDER'] = os.getenv('MAIL_USERNAME')
 
-    # Enable CORS
+    # CORS
     CORS(app,
          supports_credentials=True,
          resources={r"/api/*": {
@@ -66,7 +63,6 @@ def create_app():
     mail.init_app(app)
 
     # Register blueprints
-    from models import db  # Ensure models are loaded
     from auth import auth_bp
     from customer import customer_bp
     from stylist import stylist_bp
@@ -81,7 +77,6 @@ def create_app():
 
     return app
 
-# Create Flask app
 app = create_app()
 
 if __name__ == '__main__':
