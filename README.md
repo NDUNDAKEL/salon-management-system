@@ -1,6 +1,6 @@
 
 ## youtube video link -
-Video is uploading, remaining approximatedly 10 mins
+https://firebasestorage.googleapis.com/v0/b/eschool-96a1a.firebasestorage.app/o/Vite%20%2B%20React%20-%20Brave%202025-06-30%2011-29-51.mp4?alt=media&token=d3ee528f-0350-4400-9ea7-d2c9a29f7ef9
 
 # Salon System
 
