@@ -4,7 +4,7 @@ import { toast } from 'react-toastify';
 import { FaSpinner } from 'react-icons/fa';
 import { useNavigate } from 'react-router-dom';
 
-const API_BASE_URL = 'https://salon-management-system-2.onrender.com/api';
+const API_BASE_URL = 'http://127.0.0.1:5000/api';
 
 export default function StylistForm() {
 const [formData, setFormData] = useState({

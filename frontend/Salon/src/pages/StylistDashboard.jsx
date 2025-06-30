@@ -103,7 +103,7 @@ useEffect(() => {
 const loadServices = async () => {
   setLoading(prev => ({ ...prev, services: true }));
   try {
-    const response = await axios.get('https://salon-management-system-2.onrender.com/api/salon/services'); // Adjust baseURL if needed
+    const response = await axios.get('http://127.0.0.1:5000/api/salon/services'); // Adjust baseURL if needed
     setServices(response.data);
   } catch (err) {
     toast.error('Failed to load services');
@@ -117,7 +117,7 @@ const loadAppointments = async () => {
   setLoading(prev => ({ ...prev, appointments: true }));
   try {
       
-    const response = await axios.get(`https://salon-management-system-2.onrender.com/api/stylist/stylists/${user.stylist_id}/appointments`, {
+    const response = await axios.get(`http://127.0.0.1:5000/api/stylist/stylists/${user.stylist_id}/appointments`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -199,7 +199,7 @@ const handleProfileUpdate = async (e) => {
   try {
     await toast.promise(
       axios.patch(
-        `https://salon-management-system-2.onrender.com/api/customer/customers/${user.id}`,
+        `http://127.0.0.1:5000/api/customer/customers/${user.id}`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       ),
@@ -227,7 +227,7 @@ const handleProfileUpdate = async (e) => {
 };
   const handleDeleteAccount = async () => {
     try {
-      await axios.delete(`https://salon-management-system-2.onrender.com/api/customer/customers/${user.id}`, {
+      await axios.delete(`http://127.0.0.1:5000/api/customer/customers/${user.id}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -246,7 +246,7 @@ const handleProfileUpdate = async (e) => {
 const completeAppointment =  async (appointmentId) => {
   try {
     const response = await axios.patch(
-      `https://salon-management-system-2.onrender.com/api/stylist/stylists/appointments/${appointmentId}`,
+      `http://127.0.0.1:5000/api/stylist/stylists/appointments/${appointmentId}`,
       {},
       {
         headers: {

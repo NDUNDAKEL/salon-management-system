@@ -24,7 +24,7 @@ export default function AdminDashboard() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await axios.get('https://salon-management-system-2.onrender.com/api/customer/admin/customers', {
+      const res = await axios.get('http://127.0.0.1:5000/api/customer/admin/customers', {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -47,7 +47,7 @@ console.log(users)
   const toggleUserStatus = async (id, isBlocked) => {
     try {
       await axios.patch(
-        `https://salon-management-system-2.onrender.com/api/customer/admin/customers/${id}`,
+        `http://127.0.0.1:5000/api/customer/admin/customers/${id}`,
         { is_blocked: !isBlocked },
         {
           headers: { 
@@ -71,7 +71,7 @@ console.log(users)
 
   const handleLogout = async () => {
     try {
-      await axios.delete('https://salon-management-system-2.onrender.com/api/auth/logout', {
+      await axios.delete('http://127.0.0.1:5000/api/auth/logout', {
         headers: { 
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'

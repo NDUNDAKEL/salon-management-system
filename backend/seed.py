@@ -1,6 +1,8 @@
-from app import app, db
+from app import create_app, db
 from models import User, Stylist, Salon, Service, Appointment, Review, SalonReview
 from datetime import date, time
+
+app = create_app()
 
 with app.app_context():
     db.drop_all()

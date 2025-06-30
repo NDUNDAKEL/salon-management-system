@@ -3,7 +3,7 @@ import axios from 'axios';
 import { toast } from 'react-toastify';
 import ServiceList from './ShowServices';
 
-const API_URL = 'https://salon-management-system-2.onrender.com/api';
+const API_URL = 'http://127.0.0.1:5000/api';
 
 export default function ServiceForm() {
   const [formData, setFormData] = useState({

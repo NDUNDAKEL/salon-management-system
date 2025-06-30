@@ -1,3 +1,6 @@
+
+## youtube video link 
+
 # Salon System
 
 A modern, full-stack salon management system that enables customers to book appointments, view available services and stylists, and allows admins to manage customers, appointments, and services efficiently.

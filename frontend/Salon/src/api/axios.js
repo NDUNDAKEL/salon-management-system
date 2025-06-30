@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://salon-management-system-2.onrender.com/api',
+  baseURL: 'http://127.0.0.1:5000/api',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
