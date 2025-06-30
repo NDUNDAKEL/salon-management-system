@@ -21,7 +21,8 @@ def create_app():
 
     app = Flask(__name__)
 
-    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///salon.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://salon_4yem_user:i3BfPt8vkVZAEGNrzjFK64zyO5uUxi7l@dpg-d1h3j27fte5s73994rng-a/salon_4yem'
+
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'super-secret-key')
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=1)
@@ -55,6 +56,7 @@ def create_app():
              "max_age": 86400
          }}
     )
+    
 
     # Initialize extensions
     db.init_app(app)

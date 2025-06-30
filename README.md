@@ -100,7 +100,7 @@ You can test the API using Postman or cURL:
 bash
 Copy
 Edit
-curl -X GET http://127.0.0.1:5000/api/customers
+curl -X GET https://salon-management-system-2.onrender.com/api/customers
 Screenshots
 (Optional: Add screenshots or GIFs of the app's UI)
 

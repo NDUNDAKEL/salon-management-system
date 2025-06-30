@@ -120,7 +120,7 @@ useEffect(() => {
 const loadServices = async () => {
   setLoading(prev => ({ ...prev, services: true }));
   try {
-    const response = await axios.get('http://127.0.0.1:5000/api/salon/services'); // Adjust baseURL if needed
+    const response = await axios.get('https://salon-management-system-2.onrender.com/api/salon/services'); // Adjust baseURL if needed
     setServices(response.data);
   } catch (err) {
     toast.error('Failed to load services');
@@ -134,7 +134,7 @@ const loadAppointments = async () => {
   setLoading(prev => ({ ...prev, appointments: true }));
   try {
       
-    const response = await axios.get(`http://127.0.0.1:5000/api/customer/customers/${user.id}/appointments`, {
+    const response = await axios.get(`https://salon-management-system-2.onrender.com/api/customer/customers/${user.id}/appointments`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -169,7 +169,7 @@ const loadReviews = async () => {
   setLoading(prev => ({ ...prev, reviews: true }));
 
   try {
-    const response = await axios.get(`http://127.0.0.1:5000/api/customer/customers/${user.id}/reviews`, {
+    const response = await axios.get(`https://salon-management-system-2.onrender.com/api/customer/customers/${user.id}/reviews`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -227,7 +227,7 @@ const handleProfileUpdate = async (e) => {
   try {
     await toast.promise(
       axios.patch(
-        `http://127.0.0.1:5000/api/customer/customers/${user.id}`,
+        `https://salon-management-system-2.onrender.com/api/customer/customers/${user.id}`,
         payload,
         { headers: { Authorization: `Bearer ${token}` } }
       ),
@@ -255,7 +255,7 @@ const handleProfileUpdate = async (e) => {
 };
   const handleDeleteAccount = async () => {
     try {
-      await axios.delete(`http://127.0.0.1:5000/api/customer/customers/${user.id}`, {
+      await axios.delete(`https://salon-management-system-2.onrender.com/api/customer/customers/${user.id}`, {
         headers: {
           Authorization: `Bearer ${token}`
         }
@@ -273,7 +273,7 @@ const handleProfileUpdate = async (e) => {
 
 const cancelAppointment = async (appointmentId) => {
   try {
-    await axios.delete(`http://127.0.0.1:5000/api/customer/customers/${user.id}/appointments/${appointmentId}`, {
+    await axios.delete(`https://salon-management-system-2.onrender.com/api/customer/customers/${user.id}/appointments/${appointmentId}`, {
       headers: {
         Authorization: `Bearer ${token}`
       }
@@ -313,7 +313,7 @@ const openReviewModal = (appointment) => {
 
 const submitReview = async (reviewData) => {
   try {
-    await axios.post('http://127.0.0.1:5000/api/customer/reviews', reviewData, {
+    await axios.post('https://salon-management-system-2.onrender.com/api/customer/reviews', reviewData, {
       headers: { Authorization: `Bearer ${token}` }
     });
     toast.success('Review submitted!');

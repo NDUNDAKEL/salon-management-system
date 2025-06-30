@@ -11,7 +11,7 @@ const token = localStorage.getItem('token');
   const loadAdminAppointments = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`http://127.0.0.1:5000/api/customer/customers/admin/appointments`, {
+      const response = await axios.get(`https://salon-management-system-2.onrender.com/api/customer/customers/admin/appointments`, {
     
       });
       setAppointments(response.data);
@@ -26,7 +26,7 @@ const token = localStorage.getItem('token');
   const deleteAppointment = async (appointmentId) => {
     try {
    await axios.delete(
-  `http://127.0.0.1:5000/api/customer/admin/appointments/${appointmentId}`,
+  `https://salon-management-system-2.onrender.com/api/customer/admin/appointments/${appointmentId}`,
   {
     headers: {
       Authorization: `Bearer ${token}`

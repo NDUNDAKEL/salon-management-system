@@ -33,7 +33,7 @@ const BookingModal = ({
     console.log('Sending payload:', payload);  // Debug log
 
     const response = await axios.post(
-      `http://127.0.0.1:5000/api/customer/customers/${user.id}/appointments`,
+      `https://salon-management-system-2.onrender.com/api/customer/customers/${user.id}/appointments`,
       payload,
       {
         headers: {

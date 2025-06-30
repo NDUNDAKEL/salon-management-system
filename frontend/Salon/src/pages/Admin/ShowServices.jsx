@@ -3,7 +3,7 @@ import axios from 'axios';
 import { FaEdit, FaTrash, FaSpinner } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
-const API = 'http://127.0.0.1:5000/api';
+const API = 'https://salon-management-system-2.onrender.com/api';
 
 export default function ServiceList() {
   const [services, setServices] = useState([]);

@@ -3,7 +3,7 @@ import axios from 'axios';
 import { FaTrash, FaEdit, FaSpinner } from 'react-icons/fa';
 import { toast } from 'react-toastify';
 
-const API_URL = 'http://127.0.0.1:5000/api';
+const API_URL = 'https://salon-management-system-2.onrender.com/api';
 
 export default function StylistListWithModal() {
   const [stylists, setStylists] = useState([]);

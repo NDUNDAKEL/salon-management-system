@@ -1,67 +1,120 @@
 from app import app, db
-from models import User, Salon, Stylist, Service  # adjust this if your models are in a separate folder
-from werkzeug.security import generate_password_hash
-from datetime import datetime
+from models import User, Stylist, Salon, Service, Appointment, Review, SalonReview
+from datetime import date, time
 
 with app.app_context():
-    # Clear existing data (optional)
     db.drop_all()
     db.create_all()
 
-    # Create a sample user
-    user = User(
-        username='testuser',
-        email='test@example.com',
-        phone='0712345678',
-        password=generate_password_hash('password123')
-    )
-
-    # Create a sample salon
+    # Create salon
     salon = Salon(
-        name='Bliss Salon',
-        slug='bliss-salon',
-        location='Nairobi CBD',
-        contact='0712345678',
-        description='A great place to get pampered.',
-        cover_image='uploads/salon/sample.jpg',
+        name="Glamour Salon",
+        slug="glamour-salon",
+        location="Downtown Nairobi",
+        contact="0712345678",
+        description="Modern salon with amazing stylists.",
         opening_hours={
-            "mon": "9:00-18:00",
-            "tue": "9:00-18:00",
-            "wed": "9:00-18:00",
-            "thu": "9:00-18:00",
-            "fri": "9:00-18:00",
-            "sat": "10:00-17:00",
-            "sun": "closed"
+            "Mon-Fri": "9am - 6pm",
+            "Sat": "9am - 4pm",
+            "Sun": "Closed"
         }
     )
-
-    # Create a sample stylist
-    stylist = Stylist(
-        name='Jane Mwende',
-        slug='jane-mwende',
-        specialization='Braiding',
-        bio='Expert in trendy braids and natural hair.',
-        profile_pic='uploads/stylist/jane.jpg',
-        salon=salon,
-        years_experience=5
-    )
-
-    # Create a sample service
-    service = Service(
-        name='Basic Haircut',
-        slug='basic-haircut',
-        description='Simple haircut for men or women.',
-        duration=30,
-        price=500,
-        category='Hair',
-        salon=salon,
-        is_active=True
-    )
-
-    stylist.services.append(service)
-
-    # Add all to session and commit
-    db.session.add_all([user, salon, stylist, service])
+    db.session.add(salon)
     db.session.commit()
 
-    print("✅ Database seeded successfully!")
+    # Create admin user
+    admin = User(
+        username="admin",
+        email="admin@example.com",
+        phone="0700000000",
+        is_admin=True
+    )
+    admin.set_password("admin123")
+    db.session.add(admin)
+
+    # Create stylist user
+    stylist_user = User(
+        username="stylist1",
+        email="stylist@example.com",
+        phone="0711000000",
+        is_stylist=True
+    )
+    stylist_user.set_password("stylist123")
+    db.session.add(stylist_user)
+
+    # Create regular customer
+    customer = User(
+        username="johndoe",
+        email="john@example.com",
+        phone="0722000000"
+    )
+    customer.set_password("password123")
+    db.session.add(customer)
+    db.session.commit()
+
+    # Create stylist profile
+    stylist = Stylist(
+        user_id=stylist_user.id,
+        salon_id=salon.id,
+        name="Mary Hair Expert",
+        specialization="Braiding",
+        slug="mary-hair-expert",
+        bio="Over 5 years of professional braiding.",
+        phone=stylist_user.phone,
+        email=stylist_user.email
+    )
+    db.session.add(stylist)
+    db.session.commit()
+
+    # Create service
+    service = Service(
+        name="Box Braids",
+        slug="box-braids",
+        description="Stylish box braids for any occasion.",
+        duration=90,
+        price=2000,
+        category="Hair",
+        salon_id=salon.id
+    )
+    db.session.add(service)
+    db.session.commit()
+
+    # Link stylist to service
+    stylist.services.append(service)
+    db.session.commit()
+
+    # Create appointment
+    appointment = Appointment(
+        customer_id=customer.id,
+        stylist_id=stylist.id,
+        service_id=service.id,
+        appointment_date=date.today(),
+        appointment_time=time(10, 30),
+        status="completed",
+        notes="Customer prefers mid-back length"
+    )
+    db.session.add(appointment)
+    db.session.commit()
+
+    # Add stylist review
+    review = Review(
+        customer_id=customer.id,
+        stylist_id=stylist.id,
+        appointment_id=appointment.id,
+        rating=5,
+        comment="Awesome experience!"
+    )
+    db.session.add(review)
+
+    # Add salon review
+    salon_review = SalonReview(
+        customer_id=customer.id,
+        salon_id=salon.id,
+        appointment_id=appointment.id,
+        rating=4,
+        comment="Great ambiance, clean environment."
+    )
+    db.session.add(salon_review)
+
+    db.session.commit()
+    print("✅ Seed data created.")
